@@ -106,20 +106,3 @@ GROUP BY cte.employee_id, sr.salary_growth_ratio, sr.emp_join_date
 ORDER BY cte.employee_id;
 
 
-
-
-
-
-
-
-
--- SELECT LENGTH("APPLE") - LENGTH(REGEXP_REPLACE("APPLE", '[aeiouAEIOU]', ''));  -- Counting the no. of vowels in a word (2)
--- SELECT LENGTH("APPLE") - LENGTH(REGEXP_REPLACE("APPLE", '[^aeiouAEIOU]', ''));  -- Counting the consonants in a word  (3)
-
-
-
-
-
-
-
-
