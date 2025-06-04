@@ -1,5 +1,8 @@
 USE db_sales;
 
+-- Loaded CSVs into respective table schemas using LOAD DATA INFILE command
+
+-- Glancing at tables' content:
 SELECT * FROM db_sales.leads;
 SELECT * FROM db_sales.sales;
 SELECT * FROM db_sales.targets;
@@ -8,6 +11,7 @@ ALTER TABLE targets MODIFY COLUMN target DECIMAL(10, 2);  -- changing 'target' c
 ALTER TABLE targets RENAME COLUMN target TO target_amt;   -- renaming col name to be different from table name
 ALTER TABLE leads DROP postal_code;  -- dropping redundant column
 
+-- Querying the metadata info on 'sales' table
 SELECT *
 FROM INFORMATION_SCHEMA.TABLES 
 WHERE TABLE_SCHEMA = 'db_sales'
@@ -38,35 +42,30 @@ ALTER TABLE new_sales RENAME sales;  -- Rename the 'new_sales' table to 'sales' 
 
 -- 1. Calculate the sales by state in each region and leads' conversion count by state in each region 
 -- with rollup applied (i.e. summary rows included).
-SELECT
-    L.region
-    , L.state
-    , SUM(S.sales_amt) AS state_sales
-    , COUNT(S.cust_id) AS state_conversion_count
-FROM leads L JOIN sales S ON L.cust_id = S.cust_id
-GROUP BY region, state
-ORDER BY region, state 
-WITH ROLLUP ;   -- ROLLUP
+-- SELECT
+--     L.region
+--     , L.state
+--     , SUM(S.sales_amt) AS state_sales
+--     , COUNT(S.cust_id) AS state_conversion_count
+-- FROM leads L JOIN sales S ON L.cust_id = S.cust_id
+-- GROUP BY region, state
+-- ORDER BY region, state 
+-- WITH ROLLUP ;   -- ROLLUP
 
--- More elegant query (NULLs of above query's output replaced by ALL STATES/ALL REGIONS)
-SELECT
-    IF(GROUPING(L.region), "ALL REGIONS", L.region) AS REGIONS   -- GROUPING fn
-    , IF(GROUPING(L.state), "ALL STATES", L.state) AS STATES
-    , SUM(S.sales_amt) AS state_sales
-    , COUNT(S.cust_id) AS state_conversion_count
-FROM leads L JOIN sales S ON L.cust_id = S.cust_id
-GROUP BY L.region, L.state
-WITH ROLLUP;
+-- -- More elegant query (NULLs of above query's output replaced by ALL STATES/ALL REGIONS)
+-- SELECT
+--     IF(GROUPING(L.region), "ALL REGIONS", L.region) AS REGIONS   -- GROUPING fn
+--     , IF(GROUPING(L.state), "ALL STATES", L.state) AS STATES
+--     , SUM(S.sales_amt) AS state_sales
+--     , COUNT(S.cust_id) AS state_conversion_count
+-- FROM leads L JOIN sales S ON L.cust_id = S.cust_id
+-- GROUP BY L.region, L.state
+-- WITH ROLLUP;
 
--- 3. Trend of monthly leads generated
-
--- 4. Quota attainment per salesperson (i.e. sales target reached per salesperson)
--- 5. Salespersons who couldn't make a sale
-
--- 6. Write a REPORT QUERY to generate the following single report:
+-- 2. Write a REPORT QUERY to generate the following sales report:
 -- ---- GROUPED BY lead year, lead month ---> no. of leads generated, % growth of leads over the months
--- ---- GROUPED BY order year, order month ---> monthly sales, min sales amt, min sales' category, min sales' salesperson, min sales' city, min sales' state, min sales' region,
--- -------- max sales amt, max sales' category, max sales' salesperson, max sales' city, max sales' state, max sales' region
+-- ---- GROUPED BY order year, order month ---> monthly sales, min sales amt, min sales' category, min sales' salesperson, min sales' city, min sales' state,
+-- min sales' region, max sales amt, max sales' category, max sales' salesperson, max sales' city, max sales' state, max sales' region
 
 WITH CTE_main AS(
 SELECT 
@@ -94,14 +93,14 @@ CTE_lead_count AS (
 SELECT
     lead_year
     , lead_month
-    , COUNT(cust_id) AS num_leads
+    , COUNT(cust_id) AS num_leads             -- counting the number of leads acquired in each month
 FROM CTE_main
 GROUP BY lead_year, lead_month
 ORDER BY lead_year, lead_month
 ),
 CTE_lead_growth AS (
 SELECT
-    ROW_NUMBER() OVER() AS row_num
+    ROW_NUMBER() OVER() AS row_num            -- final SELECT will utilize this col as joining condition
     , lc.lead_year
     , lc.lead_month
     , lc.num_leads
@@ -111,7 +110,7 @@ GROUP BY lc.lead_year, lc.lead_month
 ),
 CTE_sales AS (
 SELECT
-    ROW_NUMBER() OVER() AS row_num
+    ROW_NUMBER() OVER() AS row_num            -- final SELECT will utilize this col as joining condition
     , order_year
     , order_month
     , SUM(sales_amt) AS monthly_sales
@@ -121,6 +120,7 @@ SELECT
     , MAX(CASE WHEN sales_amt = min_sales_amt THEN city END) AS min_sales_city
     , MAX(CASE WHEN sales_amt = min_sales_amt THEN state END) AS min_sales_state
     , MAX(CASE WHEN sales_amt = min_sales_amt THEN region END) AS min_sales_region
+    
     , MAX(max_sales_amt) AS max_sales_amt
     , MAX(CASE WHEN sales_amt = max_sales_amt THEN category END) AS max_sales_cat
     , MAX(CASE WHEN sales_amt = max_sales_amt THEN sp_assigned END) AS max_sales_sp
