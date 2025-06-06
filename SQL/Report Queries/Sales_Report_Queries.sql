@@ -62,7 +62,7 @@ ALTER TABLE new_sales RENAME sales;  -- Rename the 'new_sales' table to 'sales' 
 -- GROUP BY L.region, L.state
 -- WITH ROLLUP;
 
--- 2. Write a REPORT QUERY to generate the following sales report:
+-- 2. Write a query to generate the following sales report:
 -- ---- GROUPED BY lead year, lead month ---> no. of leads generated, % growth of leads over the months
 -- ---- GROUPED BY order year, order month ---> monthly sales, min sales amt, min sales' category, min sales' salesperson, min sales' city, min sales' state,
 -- min sales' region, max sales amt, max sales' category, max sales' salesperson, max sales' city, max sales' state, max sales' region
@@ -167,7 +167,7 @@ FROM CTE_lead_growth clg RIGHT JOIN CTE_sales cs ON clg.row_num = cs.row_num ;
 +-----------+------------+-----------+-----------------+------------+-------------+---------------+---------------+---------------+--------------+----------------+-----------------+------------------+---------------+---------------+--------------+----------------+-----------------+------------------+
 
     
--- Prepare a sales report of total sales in each state's city, pivoted along months (i.e. months are columns).
+-- 3. Prepare a sales report of total sales in each state's city, pivoted along months (i.e. months are columns).
 WITH CTE AS (
 	SELECT 
         l.city AS city
