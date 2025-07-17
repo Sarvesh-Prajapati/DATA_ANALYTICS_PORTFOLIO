@@ -12,7 +12,7 @@ SELECT '# Attributes', (SELECT MAX(ORDINAL_POSITION) FROM INFORMATION_SCHEMA.COL
 | # Attributes | 20     |
 +--------------+--------+
 
--- 2. Remove the leading & trailing spaces around the hyphen in values of column 'product_name'
+-- 2. Remove the leading & trailing spaces around all the hyphens in values of column 'product_name'
 SELECT REGEXP_REPLACE(product_name, "\\s*-\\s*", '-') AS product_name FROM products;  -- first 5 records shown below
 -- REPLACE (as in query ahead) performs only literal, fixed-string substitutions. It cannot match variable whitespaces.
 -- SELECT REPLACE(REPLACE(product_name, ' -', '-'), '- ', '-') AS product_name  -- handles only single leading/trailing space (or as many instances of spaces as will be specified)
