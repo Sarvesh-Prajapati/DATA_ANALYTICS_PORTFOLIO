@@ -1,0 +1,584 @@
+-- -----------------------------------------------------------------------------------------------------------------------
+--                                     BEST PROBLEM SO FAR (Google, Amazon)
+-- -----------------------------------------------------------------------------------------------------------------------
+
+-- Stratascratch Link: https://platform.stratascratch.com/coding/2059-player-with-longest-streak
+
+-- CREATE TABLE tennis (player_id INT, match_date DATE, match_result CHAR(1));
+-- INSERT INTO tennis(player_id, match_date, match_result) VALUES
+-- (401, '2021-05-04', 'W'),(401, '2021-05-09', 'L'),(401, '2021-05-16', 'L'),(401, '2021-05-18', 'W'),(401, '2021-05-22', 'L'),(401, '2021-06-15', 'L'),(401, '2021-06-16', 'W'),(401, '2021-06-18', 'W'),(401, '2021-07-06', 'L'),(401, '2021-07-13', 'L'),(402, '2021-05-14', 'L'),(402, '2021-05-23', 'L'),
+-- (402, '2021-05-24', 'W'),(402, '2021-06-01', 'W'),(402, '2021-06-02', 'W'),(402, '2021-07-01', 'W'),(402, '2021-07-11', 'W'),(402, '2021-07-20', 'L'),(402, '2021-07-26', 'L'),(402, '2021-07-30', 'L'),(403, '2021-05-03', 'L'),(403, '2021-05-11', 'W'),(403, '2021-05-12', 'W'),(403, '2021-05-13', 'W'),
+-- (403, '2021-05-20', 'W'),(403, '2021-05-25', 'W'),(403, '2021-07-06', 'L'),(403, '2021-07-15', 'L'),(403, '2021-07-22', 'W'),(403, '2021-07-23', 'W'),(404, '2021-05-10', 'W'),(404, '2021-05-16', 'W'),(404, '2021-05-20', 'W'),(404, '2021-05-22', 'W'),(404, '2021-05-28', 'L'),(404, '2021-06-06', 'L'),
+-- (404, '2021-06-14', 'W'),(404, '2021-07-25', 'W'),(404, '2021-07-26', 'L'),(405, '2021-05-07', 'L'),(405, '2021-05-25', 'L'),(405, '2021-06-06', 'L'),(405, '2021-06-07', 'L'),(405, '2021-06-14', 'L'),(405, '2021-07-01', 'L'),(405, '2021-07-02', 'L'),(405, '2021-07-14', 'W'),(405, '2021-07-16', 'L'),(405, '2021-07-30', 'L');
+
+-- -------------------------------- SOLUTION 
+-- WITH CTE_rank_and_diff AS (
+--   SELECT
+--     row_num
+--     , player_id
+--     , RANK() OVER(PARTITION BY player_id ORDER BY row_num) AS rnk
+--     , row_num - RANK() OVER(PARTITION BY player_id ORDER BY row_num) AS diff
+--   FROM (                                                                     
+--     SELECT                                                    -- START READING FROM HERE
+--       ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS row_num
+--       , player_id
+--       , match_result
+--     FROM tennis
+--   ) tmp WHERE match_result = 'W'
+-- )
+-- , CTE_count_wins AS (
+--   SELECT
+--       diff
+--       , player_id
+--       , COUNT(*) AS win_streak
+--   FROM CTE_rank_and_diff GROUP BY diff, player_id
+-- )
+-- SELECT player_id, win_streak FROM CTE_count_wins
+-- WHERE win_streak = (SELECT MAX(win_streak) FROM CTE_count_wins)
+-- ORDER BY player_id;
+
+-- -----------------------------------------------------------------------------------------------------------------------
+
+-- THIRD HIGHEST SALARY IN EACH DEPT BUT IF LESS THAN 3 ROWS IN A DEPT, RETURN THE 2ND HIGHEST (OR THE ONLY SALARY 
+-- FOR THE ONLY 1 ROW OF A DEPT)
+
+-- SELECT * FROM emp;
+
+-- WITH CTE_ranking AS (
+-- SELECT *
+--   , DENSE_RANK() OVER(PARTITION BY dep_name ORDER BY salary DESC) AS ranked_sal
+--   , COUNT(*) OVER(PARTITION BY dep_name) AS partition_size
+-- FROM emp)
+-- SELECT emp_id, emp_name, salary, dep_id, dep_name FROM CTE_ranking
+-- WHERE partition_size >= 3 AND ranked_sal = 3 
+-- OR partition_size < 3 AND ranked_sal = partition_size
+-- ORDER BY emp_id;
+
+
+-- SECOND HIGHEST SALARY IN EACH DEPARTMENT OF emp TBL (DEPARTMENT 'Ops' HAS ONLY 1 RECORD SO IT HAS ONLY 1 SALARY LISTED. THAT RECORD MUST ALSO BE INCLUDED IN THE RESULTS)
+
+-- SELECT dep_name, salary
+-- FROM workspace.default.emp e1
+-- WHERE (
+--   2 = (
+--     SELECT COUNT(DISTINCT salary)
+--     FROM workspace.default.emp e2
+--     WHERE e2.dep_name = e1.dep_name
+--       AND e2.salary >= e1.salary
+--   )
+--   OR (
+--     1 = (
+--       SELECT COUNT(*)
+--       FROM workspace.default.emp e3
+--       WHERE e3.dep_name = e1.dep_name
+--     )
+--   )
+-- );
+
+-- ------------------------------------------------------------------------------
+
+-- TOTAL CALL DURATION (10-->20 AND 20 --> 10 ARE TO BE TAKEN AS ONE CHANNEL ONLY & NOT TWO)
+
+-- SELECT * FROM calls;
+
+-- WITH CTE_channel AS (
+-- SELECT *
+--   , CASE WHEN from_id < to_id THEN from_id ELSE to_id END AS caller    -- smaller caller ID col
+--   , CASE WHEN from_id < to_id THEN to_id ELSE from_id END AS callee    -- greater caller ID col
+-- FROM calls )
+-- SELECT caller, callee, COUNT(*) AS call_count, SUM(duration) AS total_duration FROM CTE_channel
+-- GROUP BY caller, callee
+-- ORDER BY total_duration;
+
+-- ------------------------------------------------------------------------------
+-- DATES IN A RANGE
+
+-- WITH RECURSIVE CTE_dates MAX RECURSION LEVEL 500 AS (    -- In Databricks, MAX RECURSION DEPTH is set to 100 by default
+--   SELECT TO_DATE('2021-01-01') AS today_date
+--   UNION ALL                                              -- UNION not supported in RECURSIVE cte in Databricks
+--   SELECT today_date + INTERVAL 1 DAY
+--   FROM CTE_dates
+--   WHERE today_date < '2021-12-31'
+-- )
+
+-- SELECT today_date, issue_date                 -- This query will yield dates when no loan was issued
+-- FROM CTE_dates c LEFT JOIN loan_data d
+-- ON c.today_date = d.issue_date
+-- WHERE d.issue_date IS NULL;
+
+-- ------------------------------------------------------------------------------
+
+-- SELECT *, Fully_Paid_Loans+Charged_Off_Loans+Current_Loans AS TOTAL_LOANS FROM
+-- (SELECT 
+--   purpose
+--   , IFNULL(SUM(CASE WHEN loan_status = "Fully Paid" THEN 1 END), 0) AS Fully_Paid_Loans
+--   , IFNULL(SUM(CASE WHEN loan_status = "Charged Off" THEN 1 END), 0) AS Charged_Off_Loans
+--   , IFNULL(SUM(CASE WHEN loan_status = "Current" THEN 1 END), 0) AS Current_Loans
+-- FROM loan_data GROUP BY purpose) t
+-- ORDER BY purpose;
+
+-- ------------------------------------------------------------------------------
+
+-- ALTER TABLE loan_data ADD COLUMN due_date DATE;               -- Adding new column 'due_date'
+-- ALTER TABLE loan_data ALTER COLUMN due_date AFTER term;       -- Shifting newly added column 'due_date' to the right of column 'term'
+
+-- UPDATE workspace.default.loan_data                               -- Setting col 'due_date' values
+-- SET due_date = CASE 
+--   WHEN term LIKE '%36%' THEN issue_date + INTERVAL 3 YEARS
+--   ELSE issue_date + INTERVAL 5 YEARS
+-- END;
+
+-- ------------------------------------------------------------------------------
+-- SELECT current_date + INTERVAL 5 YEARS + INTERVAL 5 months;     -- Shitfting today's date by 5 years and 5 months
+-- ------------------------------------------------------------------------------
+
+-- SECOND HIGHEST amount VALUE IN TBL 'sales_east'
+
+-- Outer query (aka Main Query) sends one row at a time from 'sales_east' to the inner query which in turn checks count of all 'amount' vals that are >= 'amount' present in that row supplied by outer query. This also means that the inner query runs for each row supplied by outer query [total O(n*n) time]
+
+-- SELECT * FROM sales_east se1     -- * can be replaced by 'amount'
+-- WHERE 2 = (
+--   SELECT COUNT(DISTINCT amount)
+--   FROM sales_east se2 
+--   WHERE se2.amount >= se1.amount
+--   );
+
+-- ------------------------------------------------------------------------------
+
+-- LINK TO PROBLEM'S LINKEDIN POST:
+-- https://www.linkedin.com/posts/rajula-chandrasekhar-reddy-73b03194_sqlinterviewquestions-dataengineer-carriergrowth-activity-7428963770154065920-_2d7?utm_source=share&utm_medium=member_desktop&rcm=ACoAAFfRSLYBT4kc-XofYc2HR1OwqRdRaGdcDjg
+
+-- Calculate the total toll collection for the day
+
+-- WITH CTE_time_difference AS (
+-- SELECT *, IFNULL(TIMESTAMPDIFF(HOUR, LAG(cross_time) OVER(PARTITION BY vehicle_no ORDER BY cross_time), cross_time), 0) AS time_diff
+-- FROM toll
+-- ),
+-- CTE_toll_charges AS (
+--   SELECT *
+--     , CASE vehicle_type
+--         WHEN 'motorcycle' THEN 0
+--         WHEN 'car' THEN CASE WHEN time_diff > 0 AND time_diff <= 4 THEN 20 ELSE 40 END
+--         WHEN 'bus' THEN CASE WHEN time_diff > 0 AND time_diff <= 4 THEN 30 ELSE 70 END
+--         WHEN 'truck' THEN CASE WHEN time_diff > 0 AND time_diff <= 4 THEN 40 ELSE 80 END
+--       END AS toll_charges
+--   FROM CTE_time_difference
+-- )
+-- SELECT
+--   TO_DATE(cross_time) AS crossing_date
+--   , SUM(toll_charges) AS total_toll_collection
+-- FROM CTE_toll_charges
+-- GROUP BY TO_DATE(cross_time);
+
+
+-- ------------------------------------------------------------------------------
+
+-- Return keyid for which the 'keyval' values are forming a palindrome (e.g. keyid 1 has ABBA and keyid 3 has DAD)
+
+-- SELECT * FROM keyvalues;
+
+-- ----------- Solution-1 -----
+-- WITH CTE_palindrome_keyid AS (
+-- SELECT
+--   CASE
+--     WHEN keyval_concatenated = REVERSE(keyval_concatenated) 
+--     THEN keyid
+--   END AS palindrome_keyid
+-- FROM (
+--       SELECT keyid, CONCAT_WS("",COLLECT_LIST(keyval)) AS keyval_concatenated
+--       FROM keyvalues
+--       GROUP BY keyid
+--     ) sub_query
+-- ) SELECT * FROM CTE_palindrome_keyid WHERE palindrome_keyid IS NOT NULL;
+
+-- ----------- Solution-2 -----
+-- SELECT keyid
+-- FROM (
+--   SELECT
+--     keyid
+--     , CONCAT_WS("",COLLECT_LIST(keyval)) AS left_to_right
+--     , REVERSE(CONCAT_WS("",COLLECT_LIST(keyval))) AS right_to_left
+--   FROM keyvalues
+--   GROUP BY keyid
+-- ) tmp WHERE left_to_right = right_to_left;
+
+-- ----------- Solution-3 -----
+-- SELECT keyid
+-- FROM keyvalues
+-- GROUP BY keyid
+-- HAVING CONCAT_WS("", COLLECT_LIST(keyval)) = REVERSE(CONCAT_WS("", COLLECT_LIST(keyval)));
+
+-- -- ----------- Solution-4 (No concat functions used) -----
+-- WITH CTE_partition_size AS (SELECT *, COUNT(*) OVER (PARTITION BY keyid) AS partition_size FROM keyvalues),
+-- CTE_paired AS (
+--     SELECT n1.keyid
+--     FROM CTE_partition_size n1 JOIN CTE_partition_size n2
+--     ON n1.keyid = n2.keyid AND n1.seqno = n2.partition_size - n2.seqno + 1    -- Total = left + right - 1 (as in Reasoning section's seating logic)
+--     WHERE n1.keyval = n2.keyval
+-- ) SELECT keyid FROM CTE_paired GROUP BY keyid HAVING COUNT(*) = ( SELECT COUNT(*) FROM keyvalues t WHERE t.keyid = CTE_paired.keyid );
+
+-- ------------------------------------------------------------------------------
+
+-- Find 3 consecutively entered numbers in the table
+
+-- CREATE TABLE consecutive (seqno INTEGER,num INTEGER);
+-- INSERT INTO consecutive VALUES (1,1),(2,1),(3,1),(4,2),(5,1),(6,1),(7,2),(8,4),(9,4),(10,4);
+
+-- SELECT * FROM consecutive;
+
+-- ----- Without using Window Functions -----
+
+-- First visualize the JOINs
+-- SELECT c1.seqno AS c1seqno, c1.num AS c1num, c2.seqno AS c2seqno, c2.num AS c2num, c3.seqno AS c3seqno, c3.num AS c3num
+-- FROM consecutive c1
+-- JOIN consecutive c2 ON c2.seqno = c1.seqno + 1
+-- JOIN consecutive c3 ON c3.seqno = c1.seqno + 2;
+
+-- Now select the distinct number
+-- SELECT DISTINCT c1.num AS thrice_consecutive_number
+-- FROM consecutive c1
+-- JOIN consecutive c2 ON c2.seqno = c1.seqno + 1
+-- JOIN consecutive c3 ON c3.seqno = c1.seqno + 2
+-- WHERE c1.num = c2.num
+--   AND c2.num = c3.num;
+
+-- ----- Using Window Functions -----
+
+-- SELECT DISTINCT num AS thrice_consecutive_number
+-- FROM (
+--     SELECT 
+--         num,
+--         LAG(num, 1) OVER (ORDER BY (SELECT NULL)) AS prev1,
+--         LAG(num, 2) OVER (ORDER BY (SELECT NULL)) AS prev2
+--     FROM consecutive ) tmp
+-- WHERE num = prev1 AND num = prev2;
+
+-- --------------------------------------------------------------------------------------------------
+
+-- Zomato SQL problem
+-- Swap the orders as 1<->2, 3<->4, 5<->6, etc. If table has odd number of rows, leave the last row as it is.
+
+-- Since table has 'order_id' column in increasing order, we can use this column to swap the orders (but in reality ordering can be random and thus Solution-3 below is what will be needed)
+
+-- ------ Solution-1
+-- WITH CTE_order_count AS (
+--   SELECT COUNT(*) AS total_orders FROM orders
+-- )
+-- SELECT
+--   CASE
+--     WHEN order_id = total_orders  AND order_id % 2 != 0 THEN order_id
+--     WHEN order_id % 2 = 0 THEN order_id - 1
+--     ELSE order_id + 1
+--   END AS corrected_order_id
+--   , item
+-- FROM orders CROSS JOIN CTE_order_count   -- since CTE returns only one record, CROSS JOIN is alright here
+-- ORDER BY corrected_order_id;
+
+-- ------ Solution-2
+-- SELECT
+--   ROW_NUMBER() OVER (ORDER BY CASE
+--                               WHEN order_id % 2 = 1 THEN order_id + 1  -- increment odd order_id by 1
+--                               ELSE order_id - 1                        -- decrement even order_id by 1
+--                               END) AS order_id
+--   , item
+-- FROM orders;
+
+-- ------ Solution-3 
+
+-- When 'order_id' is any alphanum combo (e.g. CD1234) in any order in table, then we need to first assign
+-- row numbers to entire table and then swap the row numbers among them. This lets the alphanum 'order_id' 
+-- remain unaltered while swapping still happens.
+
+-- WITH CTE_orders_numbered AS (
+--   SELECT *
+--     , ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS row_num 
+--   FROM orders
+-- ),
+-- CTE_orders_count AS (      -- this could've been done in above CTE but there COUNT(*) would run for each row 
+--   SELECT COUNT(*) AS total_orders 
+--   FROM CTE_orders_numbered
+-- )
+-- SELECT
+--   CASE
+--     WHEN row_num % 2 = 1 AND row_num != total_orders THEN row_num + 1
+--     WHEN row_num % 2 = 1 AND row_num = total_orders THEN row_num
+--     ELSE row_num - 1                        
+--   END AS row_num
+--   , item
+-- FROM CTE_orders_numbered CROSS JOIN CTE_orders_count
+-- ORDER BY row_num;
+
+-- --------------------------------------------------------------------------------------------------
+
+-- Exploding a row to find median of values (ref: https://datalemur.com/questions/median-search-freq)
+
+-- SELECT * FROM search_data;
+
+-- WITH RECURSIVE CTE_explode AS (
+--     SELECT searches, user_count, 1 AS counter
+--     FROM search_data
+--     UNION ALL
+--     SELECT ex.searches, ex.user_count, ex.counter + 1
+--     FROM CTE_explode ex
+--     WHERE ex.counter < ex.user_count
+-- ),
+-- SELECT * FROM CTE_explode ORDER BY searches;
+-- CTE_Median AS 
+-- (
+--   SELECT searches
+--     , ROW_NUMBER() OVER (ORDER BY searches) AS row_num
+--     , COUNT(*) OVER() AS total_count
+--   FROM CTE_explode
+-- )
+-- SELECT AVG(searches) AS median
+-- FROM CTE_Median
+-- WHERE row_num IN (FLOOR((total_count + 1) / 2), CEIL((total_count + 1) / 2));
+-- Following logic for median works too (just comment the above 'CTE_Median' block & above SELECT, and then uncomment the below SELECT. Then run the query):
+-- SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY searches) AS median
+-- FROM CTE_explode;
+
+-- --------------------------------------------------------------------------------------------------
+
+-- Datalemur problem link: https://datalemur.com/questions/consecutive-filing-years
+-- Write a query that identifies the user IDs who have filed taxes using any version of 'TurboTax' 
+-- consecutively for 3 or more years. Order the output by user_id ASC.
+
+-- SELECT * FROM tax_filings;
+
+-- WITH CTE_year_diff AS (
+--   SELECT
+--     user_id
+--     , EXTRACT(YEAR FROM filing_date) - LAG(EXTRACT(YEAR FROM filing_date)) OVER(PARTITION BY user_id ORDER BY EXTRACT(YEAR FROM filing_date)) AS diff
+--   FROM tax_filings
+--   WHERE product LIKE '%TurboTax%'
+-- )
+-- SELECT user_id 
+-- FROM (
+--   SELECT
+--     user_id, COUNT(diff) AS cnt
+--   FROM CTE_year_diff WHERE diff = 1
+--   GROUP BY user_id
+--   HAVING COUNT(diff) >= 2
+-- ) tmp ORDER BY user_id;
+
+-- --------------------------------------------------------------------------------------------------
+
+-- Snowflake Datalemur problem link: https://datalemur.com/questions/marketing-touch-streak
+-- Tables: snow_events, snow_emails
+
+-- WITH CTE_trial_request AS (
+--   SELECT contact_id, email FROM snow_events JOIN snow_emails USING(contact_id) WHERE event_type = 'trial_request'
+-- ),
+-- CTE_weeknum AS (
+--   SELECT
+--     CASE WHEN (weeknum - LEAD(weeknum) OVER(PARTITION BY contact_id ORDER BY weeknum DESC) = 1)
+--     AND (weeknum - LEAD(weeknum, 2) OVER(PARTITION BY contact_id ORDER BY weeknum DESC) = 2)
+--     THEN contact_id END AS contact_id
+--   FROM (SELECT DISTINCT contact_id, EXTRACT(WEEK FROM event_date) AS weeknum FROM snow_events) tmp
+-- )
+-- SELECT email FROM CTE_trial_request JOIN CTE_weeknum USING(contact_id);
+
+-- --------------------------------------------------------------------------------------------------
+
+-- McKinsey Datalemur problem link: https://datalemur.com/questions/pizzas-topping-cost
+-- Tables: pizza
+
+-- SELECT
+--   CONCAT_WS(", ", p1.topping, p2.topping, p3.topping) AS pizza_toppings
+--   , ROUND(SUM(p1.price + p2.price + p3.price), 2) AS total_price
+-- FROM pizza p1
+-- JOIN pizza p2 ON p2.topping > p1.topping
+-- JOIN pizza p3 ON p3.topping > p2.topping
+-- GROUP BY p1.topping, p2.topping, p3.topping
+-- ORDER BY total_price DESC, pizza_toppings ;
+
+-- -----------------------------------------------------------------------------------------------------------
+
+-- Testing COUNT() as window function
+-- Table: counting
+
+-- SELECT *, COUNT(mgrid) OVER(PARTITION BY deptid ORDER BY mgrid DESC) AS counted FROM counting;
+-- SELECT *, COUNT(mgrid) OVER(PARTITION BY deptid ORDER BY mgrid)      AS counted FROM counting;
+
+
+-- ----------------------------------------------------------------------------------------------------------- 
+-- Stratascratch site : https://platform.stratascratch.com/coding/10547-actor-rating-difference-analysis
+-- Table: actors_rated
+-- For each actor, calculate the difference b/w rating of their most recent film and their avg rating across all previous films (the average rating excludes the most recent one). Return a list of actors along with their average lifetime rating, the rating of their most recent film, and the difference between the two ratings. Round the difference calculation to 2 decimal places. If an actor has only one film, return 0 for the difference and their only film's rating for both the average and latest rating fields
+
+-- WITH CTE_ranked AS (
+--     SELECT *
+--       , RANK() OVER(PARTITION BY actor_name ORDER BY release_date DESC) AS rnk
+--     FROM actors_rated
+-- )
+-- SELECT 
+--  actor_name
+--  , ROUND(CASE 
+--     WHEN COUNT(*) = 1 THEN MAX(film_rating)                       -- actor with single row; MAX used otherwise 'film_rating' should be in GROUP BY
+--     WHEN COUNT(*) > 1 THEN AVG(film_rating) FILTER(WHERE rnk > 1) -- actor with  many rows; filter their latest movie's rating & average the rest
+--   END, 2) AS avg_rating
+--  , MAX(film_rating) FILTER(WHERE rnk = 1) AS latest_rating
+--  , ROUND(MAX(film_rating) FILTER(WHERE rnk = 1) - 
+--        CASE 
+--         WHEN COUNT(*) = 1 THEN MAX(film_rating)
+--         WHEN COUNT(*) > 1 THEN AVG(film_rating) FILTER(WHERE rnk > 1)
+--       END, 2) AS rating_difference
+-- FROM CTE_ranked 
+-- GROUP BY actor_name;
+
+-- ------- Another, better (non-PostgreSQL) solution
+
+-- WITH CTE_latest_rank AS (
+--   SELECT actor_name, film_rating, ROW_NUMBER() OVER (PARTITION BY actor_name ORDER BY release_date DESC) AS latest_rank
+--   FROM actors_rated
+-- ),
+-- CTE_rating_stats AS (
+--   SELECT
+--     actor_name
+--     , ROUND(COALESCE(AVG(CASE WHEN latest_rank > 1 THEN film_rating END), MAX(film_rating)),2) AS avg_rating
+--     , MAX(CASE WHEN latest_rank = 1 THEN film_rating END) AS latest_rating
+--   FROM CTE_latest_rank GROUP BY actor_name
+-- )
+-- SELECT actor_name, avg_rating, latest_rating
+--     , ROUND(latest_rating - avg_rating, 2) AS rating_differance
+-- FROM CTE_rating_stats;
+
+--  -----------------------------------------------------------------------------------------------------------------------
+
+-- SUM(CASE...) versus COUNT(CASE...) through small examples
+-- Table: results
+-- CREATE TABLE results(stat VARCHAR(20));
+-- INSERT INTO results VALUES('success'),('failure'),('success'),('failure');
+
+-- +---------+
+-- | stat    |
+-- +---------+
+-- | success |
+-- | failure |
+-- | success |
+-- | failure |
+-- +---------+
+
+-- SELECT 
+--   stat
+--   , SUM(CASE WHEN stat = 'success' THEN 100 END) AS sm1           -- o/p: success = 200   failure = NULL ; condition failure returns NULL
+--   , SUM(CASE WHEN stat = 'success' THEN 100 ELSE -1 END) AS sm2   -- o/p: success = 200   failure = -2   ; condition failure returns ELSE value
+--   , COUNT(CASE WHEN stat = 'success' THEN 1 END) AS cnt1          -- o/p: success = 2   failure = 0      ; condition failure returns 0
+--   , COUNT(CASE WHEN stat = 'success' THEN 1 ELSE -1 END) AS cnt2  -- o/p: success = 2   failure = 2      ; condition failure returns ELSE value
+-- FROM results GROUP BY stat;
+
+-- SELECT
+--   stat
+--   , CASE WHEN stat = 'success' THEN 100 END AS no_else           -- condition failure returns NULL
+--   , CASE WHEN stat = 'success' THEN 100 ELSE 0 END AS with_else  -- condition failure returns ELSE value
+-- FROM results;
+
+-- ---------------------------------------------------------------------------------------------------------------------------------
+
+-- FORWARD FILLING problem
+
+-- SELECT * FROM ffill;
+
+-- --------------  Solution-1 (SUM-CASE):
+
+-- WITH CTE_assign_ID AS(     -- Assign 'id' col to number each row
+--   SELECT
+--     ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS id
+--     , dept
+--   FROM ffill
+-- )
+-- , CTE_assign_flag AS (     -- Create a 'flag' column
+--   SELECT *
+--     , SUM(CASE WHEN dept IS NULL THEN 0 ELSE 1 END) OVER(ORDER BY id) AS flag 
+--   FROM CTE_assign_ID
+-- ) 
+-- SELECT *                   -- Use 'flag' col created above to partition 'dept' values & 
+--   , FIRST_VALUE(dept) OVER(PARTITION BY flag ORDER by id) AS ffill_value     -- extract first value in each partition
+-- FROM CTE_assign_flag;
+
+-- --------------  Solution-2 (COUNT() AS WIN FN):
+
+-- WITH CTE_assign_ID AS (
+  -- SELECT
+  --   ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS id
+  --   , dept
+  -- FROM ffill
+-- )
+-- , CTE_count_dept AS ( 
+--   SELECT *
+--     , COUNT(dept) OVER(ORDER BY id) AS cnt  -- COUNT here works as ranking fn on 'dept' col when ORDER BY is not as per 'dept'
+--   FROM CTE_assign_id
+-- ) 
+-- SELECT *, FIRST_VALUE(dept) OVER(PARTITION BY cnt ORDER by id) AS ffill_value FROM CTE_count_dept;
+
+-- --------------  Solution-3 (LEFT JOIN with self):
+
+-- WITH CTE AS (
+-- SELECT
+--   dept, COUNT(dept) OVER(ORDER BY rid) AS cnt
+-- FROM (
+--   SELECT ROW_NUMBER() OVER(ORDER BY (SELECT 1)) AS rid, dept
+--   FROM ffill
+--   ) t
+-- )
+-- SELECT c1.dept, c2.dept AS ffilled_dept
+-- FROM CTE c1 LEFT JOIN CTE c2 ON c1.cnt = c2.cnt AND c2.dept IS NOT NULL;
+
+
+--  -----------------------------------------------------------------------------------------------------------------------
+-- Invert the 'letters' table and union with itself (e.g a d c b --> a d c b b c d a)
+
+-- SELECT * FROM letters;
+
+-- WITH CTE_base AS (
+--   SELECT 
+--     letter
+--     , ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS row_num
+--     , COUNT(*) OVER() AS total
+--   FROM letters
+-- )
+-- SELECT
+--     letter
+--     , order_col             
+-- FROM (
+--   SELECT letter, row_num AS order_col FROM CTE_base      -- original order
+--   UNION ALL
+--   SELECT letter, (2 * total - row_num + 1) AS order_col FROM CTE_base -- reversed order
+-- ) t ORDER BY order_col;
+
+
+--  -----------------------------------------------------------------------------------------------------------------------
+--  Table: puzzle
+
+-- CREATE TABLE puzzle (rid INT, rule VARCHAR(5), val INT);
+-- INSERT INTO puzzle VALUES (1, '2+3', 10),(2, '1*5', 12),(3, '4-2', 14),(4, '3/1', 15),(5, '1+2', 18);
+
+-- SELECT * FROM puzzle;
+
+-- WITH CTE AS
+-- (SELECT *
+--     , REGEXP_SUBSTR(rule, '^[0-9]+') AS id1        -- extract one or more digits from the start into col 'id1'
+--     , REGEXP_SUBSTR(rule, '[0-9]+$') AS id2        -- extract one or more digits from the end into col 'id2'
+--     , REGEXP_SUBSTR(rule, '[+\\-*/]') AS operator  -- \\ is used to escape '-' else '-' is taken as separator in pattern
+-- FROM puzzle
+-- )
+-- SELECT *
+-- FROM CTE c1 JOIN CTE c2 ON c1.rid = c2.id1
+-- JOIN CTE c3 ON c1.rid = c3.id2;
+
+
+--  -----------------------------------------------------------------------------------------------------------------------
+-- Forward filling of brands
+-- Tbl: brands
+
+-- CREATE TABLE brands ( category VARCHAR(50),brand_name VARCHAR(50));
+-- INSERT INTO brands VALUES ('Beverages', 'Coca Cola'),(NULL, 'Pepsi'), (NULL, 'Sprite'),(NULL, 'Fanta'),('Snacks', 'Lays'),(NULL, 'Doritos'),(NULL, 'Kurkure');
+
+-- WITH CTE_partitions AS (
+--  SELECT 
+--   category
+--   , brand_name
+--   , COUNT(category) OVER (ORDER BY brand_name) AS partition_num
+--  FROM brands
+-- ) SELECT MAX(category) OVER (PARTITION BY partition_num) AS category, brand_name FROM CTE_partitions;
+
